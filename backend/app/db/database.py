@@ -17,5 +17,8 @@ def get_db():
 
 from app.models.user import User
 from app.models.document import Document
+from app.models.category import Category
+from app.models.log import Log
+from app.models.classification_result import ClassificationResult
 
 Base.metadata.create_all(bind=engine)

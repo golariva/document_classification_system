@@ -1,0 +1,81 @@
+.login-container {
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(135deg, #81a5ff, #9cffa7);
+}
+
+.login-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 80vh;
+  padding: 20px;
+}
+
+.title-block {
+  max-width: 1500x;
+  text-align: center;
+  top: 0;
+}
+
+header {
+  position: absolute; /* Вырываем шапку из общего потока */
+  top: 0;
+  left: 0;
+  width: 100%;
+  padding: 20px;
+  text-align: center; /* Если хотите, чтобы текст был по центру горизонтально */
+}
+
+.title-block h1 {
+  font-size: 40px;
+  font-weight: 500;
+  color: #1e293b;
+  line-height: 2;
+  padding: 50px;
+}
+
+.login-card {
+  background: white;
+  padding: 40px;
+  border-radius: 12px;
+  width: 320px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  text-align: center;
+}
+
+.login-card h2 {
+  margin-bottom: 20px;
+}
+
+.login-card input {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 15px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.login-card button {
+  width: 100%;
+  padding: 10px;
+  background: #2a2852;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.login-card button:hover {
+  background: #4338ca;
+}
+
+.error {
+  color: red;
+  margin-top: 10px;
+}
