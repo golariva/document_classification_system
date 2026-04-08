@@ -16,18 +16,9 @@
 }
 
 .title-block {
-  max-width: 1500x;
+  max-width: 800x;
   text-align: center;
   top: 0;
-}
-
-header {
-  position: absolute; /* Вырываем шапку из общего потока */
-  top: 0;
-  left: 0;
-  width: 100%;
-  padding: 20px;
-  text-align: center; /* Если хотите, чтобы текст был по центру горизонтально */
 }
 
 .title-block h1 {

@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import LoginForm from "./LoginForm";
 import AdminPage from "./AdminPage";
 import EmployeePage from "./EmployeePage";
+import ForgotPassword from "./ForgotPassword";
 
 function App() {
   return (
@@ -11,6 +12,7 @@ function App() {
         <Route path="/" element={<LoginForm />} />
         <Route path="/admin" element={<AdminPage />} />
         <Route path="/employee" element={<EmployeePage />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
       </Routes>
     </BrowserRouter>
   );

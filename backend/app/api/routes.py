@@ -16,6 +16,7 @@ from app.services.deps import get_current_user
 from pydantic import BaseModel
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi import Form
+from app.utils.yandex_disk import upload_to_yandex, ensure_folder
 
 router = APIRouter()
 
@@ -66,6 +67,13 @@ def upload_file(
 
     # 6. перемещаем файл
     shutil.move(temp_path, final_path)
+
+    # 6.1 загружаем в Яндекс Диск
+    cloud_folder = f"/documents/{category}"
+    cloud_path = f"{cloud_folder}/{file.filename}"
+
+    ensure_folder(cloud_folder)
+    upload_to_yandex(final_path, cloud_path)
 
     # 7. сохраняем в БД
     doc = create_document(db, file.filename, final_path, user_id=current_user.id)
@@ -143,3 +151,24 @@ def classify_document(
         "category": category.name,
         "probability": probability
     }
+
+from pydantic import BaseModel
+import uuid
+
+class ResetRequest(BaseModel):
+    email: str
+
+@router.post("/forgot-password")
+def reset_password(data: ResetRequest, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.email == data.email).first()
+
+    if not user:
+        return {"message": "Если email существует — инструкция отправлена"}
+
+    # генерируем токен
+    token = str(uuid.uuid4())
+
+    # пока просто выводим в консоль
+    print(f"RESET TOKEN for {user.email}: {token}")
+
+    return {"message": "Проверьте консоль сервера (пока без email)"}

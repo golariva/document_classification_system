@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { login } from "../api";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import "./LoginForm.css";
 
 export default function LoginForm() {
@@ -31,13 +31,11 @@ export default function LoginForm() {
 
   return (
     <main className="login-container">
-      <header>
         <div className="title-block">
           <h1>
             Система организации хранения документов согласно номенклатуре дел учебного офиса
           </h1>
         </div>
-      </header>
 
       <form className="login-card" onSubmit={handleSubmit}>
         <h2>Вход в систему</h2>
@@ -59,6 +57,10 @@ export default function LoginForm() {
         />
 
         <button type="submit">Войти</button>
+
+        <p className="forgot">
+          <Link to="/forgot-password">Забыли пароль?</Link>
+        </p>
 
         {error && <p className="error">{error}</p>}
       </form>
