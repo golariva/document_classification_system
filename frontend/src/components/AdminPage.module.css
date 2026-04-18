@@ -1,0 +1,272 @@
+.page {
+  min-height: 100vh;
+  padding: 30px;
+  font-family: Inter, sans-serif;
+  background: #f5f7fb;
+  color: #111827;
+}
+
+/* HEADER */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+}
+
+.title {
+  font-size: 28px;
+  margin: 0;
+}
+
+.subtitle {
+  margin: 0;
+  opacity: 0.6;
+}
+
+/* NAV */
+.nav {
+  display: flex;
+  gap: 10px;
+  transform: translateY(-10px);
+}
+
+.navBtn {
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  background: white;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  transition: 0.2s;
+}
+
+.navBtn:hover {
+  transform: translateY(-2px);
+}
+
+.logout {
+  background: #fee2e2;
+}
+
+/* CARD */
+.card {
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 20px;
+
+  box-shadow: 0 10px 25px rgba(0,0,0,0.06);
+}
+
+.cardTitle {
+  margin-bottom: 15px;
+}
+
+/* FORM */
+.form {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.input {
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  outline: none;
+}
+
+/* BUTTONS */
+.mainButton {
+  padding: 10px 16px;
+  border-radius: 12px;
+  border: none;
+  background: #4f46e5;
+  color: white;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.mainButton:hover {
+  transform: translateY(-2px);
+  background: #4338ca;
+}
+
+.smallBtn {
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: white;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.smallBtn:hover {
+  background: #fee2e2;
+  transform: scale(1.05);
+}
+
+/* DOC ROW */
+.doc {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px;
+  border-bottom: 1px solid #eee;
+  transition: 0.2s;
+}
+
+.doc:hover {
+  background: #f9fafb;
+  transform: scale(1.01);
+}
+
+.path {
+  font-size: 12px;
+  opacity: 0.5;
+}
+
+.reportsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.reportCard {
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.06);
+  transition: all 0.3s ease;
+  animation: fadeUp 0.4s ease both;
+}
+
+.reportCard:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 35px rgba(0,0,0,0.12);
+}
+
+.chartBox {
+  margin-top: 10px;
+}
+
+.barRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  animation: fadeUp 0.4s ease both;
+}
+
+.barRow span:first-child {
+  min-width: 140px;
+}
+
+.bar {
+  width: 100%;
+  height: 10px;
+  background: #e5e7eb;
+  border-radius: 999px;
+  overflow: hidden;
+  flex: 1;
+}
+
+.barFill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #2bff60, #7758ff);
+  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.lineChart {
+  height: 120px;
+  background: linear-gradient(180deg, #eef2ff, #ffffff);
+  border-radius: 12px;
+  position: relative;
+  overflow: hidden;
+}
+
+.fakeLine {
+  position: absolute;
+  bottom: 20px;
+  left: 10%;
+  width: 80%;
+  height: 2px;
+  background: linear-gradient(90deg, #6366f1, #22c55e);
+  animation: drawLine 1.2s ease forwards;
+  transform-origin: left;
+}
+
+@keyframes drawLine {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.metricsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.metricCard {
+  background: linear-gradient(180deg, #ffffff, #f9fafb);
+  border-radius: 14px;
+  padding: 15px;
+  box-shadow: 0 6px 15px rgba(0,0,0,0.05);
+  transition: all 0.3s ease;
+  animation: fadeUp 0.5s ease both;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;   /* вертикальный центр */
+  align-items: center;       /* горизонтальный центр */
+  text-align: center;
+  gap: 6px;                  /* равномерные отступы */
+  min-height: 120px;        /* важно: чтобы центрирование ощущалось */
+}
+
+.metricCard:hover {
+  transform: translateY(-4px);
+}
+
+.metricCard h4 {
+  margin: 0;
+  font-size: 14px;
+  opacity: 0.6;
+}
+
+.metricCard p {
+  font-size: 18px;
+  font-weight: 600;
+  margin-top: 6px;
+  color: #4f46e5;
+}
+
+.reportsPage {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.legend {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+  font-size: 12px;
+  opacity: 0.6;
+}
+
+/* ANIMATION */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

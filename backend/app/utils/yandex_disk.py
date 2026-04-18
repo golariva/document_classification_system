@@ -1,4 +1,5 @@
 import requests
+from urllib.parse import quote
 
 YANDEX_TOKEN = "y0__xDu97aHARiujUAggrSzghe8XRb2owjA96-3s7NY-6lfjntNGg"
 
@@ -62,3 +63,37 @@ def upload_to_yandex(local_path, cloud_path):
 
     if upload_res.status_code not in [200, 201]:
         print("Ошибка загрузки:", upload_res.text)
+
+def file_exists(path: str):
+    url = "https://cloud-api.yandex.net/v1/disk/resources"
+    headers = {"Authorization": f"OAuth {YANDEX_TOKEN}"}
+    params = {"path": path}
+
+    res = requests.get(url, headers=headers, params=params)
+
+    return res.status_code == 200
+
+def find_file_by_name(filename: str):
+    url = "https://cloud-api.yandex.net/v1/disk/resources/files"
+
+    headers = {
+        "Authorization": f"OAuth {YANDEX_TOKEN}"
+    }
+
+    params = {
+        "limit": 1000
+    }
+
+    response = requests.get(url, headers=headers, params=params)
+
+    if response.status_code != 200:
+        return None
+
+    for item in response.json().get("items", []):
+        if item.get("name") == filename:
+            path = item.get("path")
+
+            if path.startswith("disk:/8.2 НИУ ВШЭ - Пермь"):
+                return path
+
+    return None

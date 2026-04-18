@@ -3,7 +3,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  background: linear-gradient(135deg, #81a5ff, #9cffa7);
+  background: linear-gradient(135deg, #6f5cff, #4fff64);
 }
 
 .login-container {
@@ -24,7 +24,7 @@
 .title-block h1 {
   font-size: 40px;
   font-weight: 500;
-  color: #1e293b;
+  color: #121923;
   line-height: 2;
   padding: 50px;
 }
@@ -69,4 +69,81 @@
 .error {
   color: red;
   margin-top: 10px;
+}
+
+/* общий fade-in при загрузке */
+.login-container {
+  animation: fadeIn 0.6s ease-out;
+}
+
+/* карточка логина */
+.login-card {
+  animation: slideUp 0.7s ease-out;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.login-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.12);
+}
+
+/* inputs */
+.login-card input {
+  transition: all 0.2s ease;
+}
+
+.login-card input:focus {
+  transform: scale(1.02);
+  border-color: #4f46e5;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(79,70,229,0.15);
+}
+
+/* кнопка */
+.login-card button {
+  transition: all 0.2s ease;
+}
+
+.login-card button:hover {
+  transform: translateY(-2px);
+  background: #4338ca;
+}
+
+.login-card button:active {
+  transform: scale(0.98);
+}
+
+/* ошибки */
+.error {
+  animation: shake 0.3s ease;
+  color: #ef4444;
+}
+
+/* title */
+.title-block h1 {
+  animation: fadeIn 1s ease;
+}
+
+/* ANIMATIONS */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  50% { transform: translateX(4px); }
+  75% { transform: translateX(-3px); }
 }

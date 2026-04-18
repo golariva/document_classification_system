@@ -11,7 +11,6 @@ function App() {
       <Routes>
         <Route path="/" element={<LoginForm />} />
         <Route path="/admin" element={<AdminPage />} />
-        <Route path="/employee" element={<EmployeePage />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
       </Routes>
     </BrowserRouter>

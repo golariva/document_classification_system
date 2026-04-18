@@ -29,4 +29,6 @@ def predict(text):
     probs = model.predict_proba(X)[0]
     pred = model.classes_[probs.argmax()]
 
+    print("TEXT:", text[:200])
+
     return pred, float(max(probs))
