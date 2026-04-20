@@ -21,6 +21,9 @@ export default function AdminPage() {
   const maxDyn = Math.max(...reportDynamics.map(d => d.count), 1);
   const [animKey, setAnimKey] = useState(0);
   const [animate, setAnimate] = useState(false);
+  const [page, setPage] = useState(1);
+  const limit = 20;
+  const [totalLogs, setTotalLogs] = useState(0);
 
   const [newCategory, setNewCategory] = useState({
     name: "",
@@ -119,22 +122,25 @@ export default function AdminPage() {
   };
 
   const fetchLogs = async () => {
+    const skip = (page - 1) * limit;
+
     const res = await fetch(
-      `http://127.0.0.1:8000/logs?search=${logSearch}&type=${logType}&from_date=${fromDate1}&to_date=${toDate1}`,
+      `http://127.0.0.1:8000/logs?search=${logSearch}&type=${logType}&from_date=${fromDate1}&to_date=${toDate1}&skip=${skip}&limit=${limit}`,
       {
         headers: { Authorization: `Bearer ${token}` }
       }
     );
 
     const data = await res.json();
-    setLogs(data);
+    setLogs(data.items);
+    setTotalLogs(data.total);
   };
 
   useEffect(() => {
     if (tab === "logs") {
       fetchLogs();
     }
-  }, [logSearch, logType]);
+  }, [tab, logSearch, logType, fromDate1, toDate1, page]);
 
   useEffect(() => {
     fetchCategories();
@@ -357,6 +363,22 @@ export default function AdminPage() {
               </div>
             </div>
           ))}
+
+          <div className={styles.pagination}>
+            <button className={styles.smallBtn} disabled={page === 1} onClick={() => setPage(page - 1)}>
+              Назад
+            </button>
+
+            <span>Страница {page}</span>
+
+            <button
+              className={styles.smallBtn}
+              disabled={page * limit >= totalLogs}
+              onClick={() => setPage(page + 1)}
+            >
+              Вперёд
+            </button>
+          </div>
         </div>
       )}
 

@@ -44,6 +44,14 @@ def upload_temp(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    import uuid
+    import os
+    import shutil
+
+    from app.models.category import Category
+    from app.utils.file_parser import extract_text
+    from app.ml_model import predict
+
     safe_filename = f"{uuid.uuid4()}_{file.filename}"
     temp_path = os.path.join(UPLOAD_DIR, safe_filename)
 
@@ -53,10 +61,16 @@ def upload_temp(
     text = extract_text(temp_path, file.filename)
     predicted_name, prob = predict(text)
 
+    # 🔥 ищем категорию в БД
+    category = db.query(Category).filter(
+        Category.name == predicted_name
+    ).first()
+
     return {
         "temp_path": temp_path,
         "filename": file.filename,
         "category": predicted_name,
+        "index_code": category.index_code if category else None,
         "probability": prob
     }
 
@@ -78,7 +92,6 @@ def confirm_upload(
     if not cat:
         cat = db.query(Category).first()
 
-    # 🔥 сохраняем результат классификации ВСЕГДА
     result = ClassificationResult(
         category_id=cat.id,
         probability=probability,
@@ -90,32 +103,32 @@ def confirm_upload(
     db.add(Log(
         user_id=current_user.id,
         action_type="КЛАССИФИЦИРОВАН ДОКУМЕНТ",
-        description=f"Файл '{filename}' классифицирован как '{cat.name}' (вероятность {probability:.2f}, подтверждено={is_confirmed})"
+        description=f"Файл '{filename}' классифицирован как '{cat.name}'"
     ))
     db.commit()
 
-    # ❌ если не подтверждено — просто выходим
     if not is_confirmed:
+        os.remove(temp_path)
+
         db.add(Log(
             user_id=current_user.id,
             action_type="ОТКЛОНЕНА КЛАССИФИКАЦИЯ",
-            description=f"Пользователь отклонил файл '{filename}' (категория '{cat.name}')"
+            description=f"Отклонён файл '{filename}'"
         ))
         db.commit()
 
-        os.remove(temp_path)
         return {"message": "Not confirmed"}
 
-    # ✅ если подтверждено — сохраняем документ
+    # 🔥 ВАЖНО: путь берём ИЗ storage_path (иерархия категорий)
     final_path = os.path.join(cat.storage_path, filename)
     os.makedirs(cat.storage_path, exist_ok=True)
 
     shutil.move(temp_path, final_path)
 
-    cloud_folder = f"/8.2 НИУ ВШЭ - Пермь/{cat.name}"
-    cloud_path = f"{cloud_folder}/{filename}"
+    # ====== ЯНДЕКС ДИСК (та же структура) ======
+    cloud_path = f"/{cat.storage_path}/{filename}".replace("\\", "/")
 
-    ensure_folder(cloud_folder)
+    ensure_folder(f"/{cat.storage_path}")
     upload_to_yandex(final_path, cloud_path)
 
     doc = create_document(
@@ -130,7 +143,7 @@ def confirm_upload(
         user_id=current_user.id,
         document_id=doc.id,
         action_type="ЗАГРУЗКА ДОКУМЕНТА",
-        description=f"Файл '{filename}' загружен в категорию '{cat.name}'"
+        description=f"Файл '{filename}' загружен в '{cat.storage_path}'"
     ))
     db.commit()
 
@@ -168,7 +181,7 @@ def list_documents(
     if status:
         query = query.filter(Document.status == status)
 
-    if category:
+    if category and category.isdigit():
         query = query.filter(Document.category_id == int(category))
 
     total = query.count()
@@ -206,7 +219,8 @@ def list_documents(
                 "id": doc.id,
                 "filename": doc.filename,
                 "file_path": doc.file_path,
-                "status": doc.status
+                "status": doc.status,
+                "category": doc.category.name if doc.category else None
             }
             for doc in documents
         ],
@@ -401,6 +415,8 @@ def get_logs(
     type: str = "",
     from_date: str = None,
     to_date: str = None,
+    skip: int = 0,
+    limit: int = 20,
     db: Session = Depends(get_db),
     user=Depends(get_current_user)
 ):
@@ -418,7 +434,17 @@ def get_logs(
     if to_date:
         query = query.filter(Log.created_at <= to_date)
 
-    return query.order_by(Log.created_at.desc()).all()
+    total = query.count()
+
+    logs = query.order_by(Log.created_at.desc())\
+        .offset(skip)\
+        .limit(limit)\
+        .all()
+
+    return {
+        "items": logs,
+        "total": total
+    }
 
 @router.get("/reports/documents-by-category")
 def documents_by_category(
@@ -457,7 +483,7 @@ def documents_dynamics(
     from app.models.document import Document
 
     query = db.query(
-        func.date_trunc('month', Document.uploaded_at),
+        func.date(Document.uploaded_at),
         func.count(Document.id)
     )
 
@@ -468,9 +494,9 @@ def documents_dynamics(
         query = query.filter(Document.uploaded_at <= to_date)
 
     result = query.group_by(
-        func.date_trunc('month', Document.uploaded_at)
+        func.date(Document.uploaded_at)
     ).order_by(
-        func.date_trunc('month', Document.uploaded_at)
+        func.date(Document.uploaded_at)
     ).all()
 
     return [{"date": str(r[0]), "count": r[1]} for r in result]

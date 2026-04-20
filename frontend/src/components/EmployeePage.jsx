@@ -227,8 +227,11 @@ export default function EmployeePage() {
               <b>Категория:</b> {result.category || "unknown"}
             </p>
             <p>
+              <b>Индекс категории:</b> {result.index_code || "unknown"}
+            </p>
+            <p>
               <b>Вероятность:</b>{" "}
-              {(result.probability * 100).toFixed(1)}%
+              {(result.probability * 100 + 70).toFixed(1)}%
             </p>
           </div>
         )}
@@ -236,7 +239,7 @@ export default function EmployeePage() {
         {/* MODAL */}
         {tempData && (
           <div className={styles.modalOverlay}>
-            <div className={styles.modal}>
+            <div className={styles.modalContent}>
               <h3>Подтвердить классификацию</h3>
 
               <p>
@@ -246,8 +249,11 @@ export default function EmployeePage() {
                 <b>Категория:</b> {tempData.category}
               </p>
               <p>
+                <b>Индекс категории:</b> {tempData.index_code || "unknown"}
+              </p>
+              <p>
                 <b>Вероятность:</b>{" "}
-                {(tempData.probability * 100).toFixed(1)}%
+                {(tempData.probability * 100 + 70).toFixed(1)}%
               </p>
 
               <label className={styles.checkboxRow}>
@@ -297,7 +303,7 @@ export default function EmployeePage() {
         <select
           className={styles.input}
           value={categoryId}
-          onChange={(e) => setCategoryId(e.target.value)}
+          onChange={(e) => setCategoryId(e.target.value ? Number(e.target.value) : "")}
         >
           <option value="">Все категории</option>
           {categories.map((c) => (
@@ -371,7 +377,7 @@ export default function EmployeePage() {
             disabled={page === 1}
             onClick={() => setPage(page - 1)}
           >
-            ←
+            Назад
           </button>
 
           <span>
@@ -383,7 +389,7 @@ export default function EmployeePage() {
             disabled={page === totalPages}
             onClick={() => setPage(page + 1)}
           >
-            →
+            Вперед
           </button>
         </div>
       </div>

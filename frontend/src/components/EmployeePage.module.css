@@ -175,7 +175,7 @@ input[type="file"] {
 }
 
 /* OVERLAY */
-.modal {
+.modalOverlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -232,7 +232,7 @@ input[type="file"] {
   align-items: center;
 }
 
-.modal {
+.modalContent {
   background: white;
   padding: 20px;
   border-radius: 16px;
