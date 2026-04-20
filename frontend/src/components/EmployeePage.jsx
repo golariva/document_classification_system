@@ -231,7 +231,7 @@ export default function EmployeePage() {
             </p>
             <p>
               <b>Вероятность:</b>{" "}
-              {(result.probability * 100 + 70).toFixed(1)}%
+              {(result.probability * 100).toFixed(1)}%
             </p>
           </div>
         )}
@@ -253,7 +253,7 @@ export default function EmployeePage() {
               </p>
               <p>
                 <b>Вероятность:</b>{" "}
-                {(tempData.probability * 100 + 70).toFixed(1)}%
+                {(tempData.probability * 100).toFixed(1)}%
               </p>
 
               <label className={styles.checkboxRow}>
