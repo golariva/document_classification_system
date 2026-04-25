@@ -9,6 +9,10 @@ services:
       - "8000:8000"
     volumes:
       - ./backend:/app
+    environment:
+      DATABASE_URL: postgresql://app:app123@db:5432/documents
+    depends_on:
+      - db
     restart: always
 
   frontend:
@@ -17,3 +21,19 @@ services:
     ports:
       - "3000:3000"
     restart: always
+
+  db:
+    image: postgres:16
+    container_name: db
+    restart: always
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app123
+      POSTGRES_DB: documents
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
