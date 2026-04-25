@@ -264,20 +264,35 @@ input[type="file"] {
   margin-top: 20px;
 }
 
-/* BUTTONS */
 .confirmBtn {
   flex: 1;
   padding: 10px;
   border-radius: 12px;
   border: none;
-  background: #4f46e5;
+  background: #36ab44;
   color: white;
   cursor: pointer;
   transition: 0.2s;
 }
 
 .confirmBtn:hover {
-  background: #4338ca;
+  background: #2b9244;
+  transform: translateY(-2px);
+}
+
+.secondaryBtn {
+  flex: 1;
+  padding: 10px;
+  border-radius: 12px;
+  border: none;
+  background: #e5e7eb;
+  color: black;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.secondaryBtn:hover {
+  background: #dcd9d9;
   transform: translateY(-2px);
 }
 
@@ -285,7 +300,7 @@ input[type="file"] {
   flex: 1;
   padding: 10px;
   border-radius: 12px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #ebe5e5;
   background: white;
   cursor: pointer;
   transition: 0.2s;
@@ -319,6 +334,32 @@ input[type="file"] {
 
 .statusOrange {
   color: orange;
+}
+
+.select {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  background: white;
+  font-size: 14px;
+  margin-top: 10px;
+
+  appearance: none;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.select:hover {
+  border-color: #4f46e5;
+  background: #f9fafb;
+}
+
+.selectBlock {
+  margin-top: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 /* ANIMATIONS */

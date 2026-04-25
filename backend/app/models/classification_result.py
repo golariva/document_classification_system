@@ -14,3 +14,4 @@ class ClassificationResult(Base):
     is_confirmed = Column(Boolean, default=False)
 
     classified_at = Column(TIMESTAMP, server_default=func.now())
+    true_category_id = Column(Integer, ForeignKey("categories.id", ondelete="SET NULL"))

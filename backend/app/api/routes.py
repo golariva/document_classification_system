@@ -81,80 +81,127 @@ def confirm_upload(
     category_name: str = Form(...),
     probability: float = Form(...),
     is_confirmed: bool = Form(...),
+    true_category_id: int = Form(None),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     from app.models.category import Category
     from app.models.classification_result import ClassificationResult
 
-    cat = db.query(Category).filter(Category.name == category_name).first()
+    model_category = db.query(Category).filter(
+        Category.name == category_name
+    ).first()
 
-    if not cat:
-        cat = db.query(Category).first()
+    if not model_category:
+        model_category = db.query(Category).first()
 
-    result = ClassificationResult(
-        category_id=cat.id,
-        probability=probability,
-        is_confirmed=is_confirmed
-    )
-    db.add(result)
-    db.commit()
+    # =========================
+    # CASE 1: пользователь выбрал другую категорию
+    # =========================
+    if true_category_id:
+        cat = db.query(Category).get(true_category_id)
 
-    db.add(Log(
-        user_id=current_user.id,
-        action_type="КЛАССИФИЦИРОВАН ДОКУМЕНТ",
-        description=f"Файл '{filename}' классифицирован как '{cat.name}'"
-    ))
-    db.commit()
+        os.makedirs(cat.storage_path, exist_ok=True)
+        final_path = os.path.join(cat.storage_path, filename)
 
+        shutil.move(temp_path, final_path)
+
+        ensure_folder(f"/{cat.storage_path}")
+        upload_to_yandex(final_path, f"/{cat.storage_path}/{filename}")
+
+        doc = create_document(
+            db,
+            filename,
+            f"/{cat.storage_path}/{filename}",
+            user_id=current_user.id,
+            category_id=cat.id
+        )
+
+        db.add(Log(
+            user_id=current_user.id,
+            document_id=doc.id,
+            action_type="ЗАГРУЗКА ДОКУМЕНТА С ДРУГОЙ КАТЕГОРИЕЙ",
+            description=f"Файл '{filename}' перенесён из '{model_category.name}' в '{cat.name}'"
+        ))
+        db.commit()
+
+        db.add(ClassificationResult(
+            category_id=model_category.id,
+            true_category_id=cat.id,
+            probability=probability,
+            is_confirmed=False,
+            document_id=doc.id
+        ))
+        db.commit()
+
+        return {"id": doc.id, "filename": filename, "category": cat.name, "probability": probability}
+
+    # =========================
+    # CASE 2: reject (ОТКЛОНЕНО)
+    # =========================
     if not is_confirmed:
-        os.remove(temp_path)
+        os.makedirs(model_category.storage_path, exist_ok=True)
+        final_path = os.path.join(model_category.storage_path, filename)
+
+        shutil.move(temp_path, final_path)
+
+        ensure_folder(f"/{model_category.storage_path}")
+        upload_to_yandex(final_path, f"/{model_category.storage_path}/{filename}")
 
         db.add(Log(
             user_id=current_user.id,
             action_type="ОТКЛОНЕНА КЛАССИФИКАЦИЯ",
-            description=f"Отклонён файл '{filename}'"
+            description=f"Файл '{filename}' отклонён. Модель: '{model_category.name}'"
         ))
         db.commit()
 
-        return {"message": "Not confirmed"}
+        db.add(ClassificationResult(
+            category_id=model_category.id,
+            true_category_id=None,
+            probability=probability,
+            is_confirmed=False
+        ))
+        db.commit()
 
-    # 🔥 ВАЖНО: путь берём ИЗ storage_path (иерархия категорий)
-    final_path = os.path.join(cat.storage_path, filename)
-    os.makedirs(cat.storage_path, exist_ok=True)
+        return {"filename": filename, "category": model_category.name, "probability": probability}
+
+    # =========================
+    # CASE 3: confirm (ПОДТВЕРДИЛ)
+    # =========================
+    os.makedirs(model_category.storage_path, exist_ok=True)
+    final_path = os.path.join(model_category.storage_path, filename)
 
     shutil.move(temp_path, final_path)
 
-    # ====== ЯНДЕКС ДИСК (та же структура) ======
-    cloud_path = f"/{cat.storage_path}/{filename}".replace("\\", "/")
-
-    ensure_folder(f"/{cat.storage_path}")
-    upload_to_yandex(final_path, cloud_path)
+    ensure_folder(f"/{model_category.storage_path}")
+    upload_to_yandex(final_path, f"/{model_category.storage_path}/{filename}")
 
     doc = create_document(
         db,
         filename,
-        cloud_path,
+        f"/{model_category.storage_path}/{filename}",
         user_id=current_user.id,
-        category_id=cat.id
+        category_id=model_category.id
     )
 
     db.add(Log(
         user_id=current_user.id,
         document_id=doc.id,
         action_type="ЗАГРУЗКА ДОКУМЕНТА",
-        description=f"Файл '{filename}' загружен в '{cat.storage_path}'"
+        description=f"Файл '{filename}' загружен в '{model_category.name}'"
     ))
     db.commit()
 
-    result.document_id = doc.id
+    db.add(ClassificationResult(
+        category_id=model_category.id,
+        true_category_id=None,
+        probability=probability,
+        is_confirmed=True,
+        document_id=doc.id
+    ))
     db.commit()
 
-    return {
-        "id": doc.id,
-        "filename": filename,
-        "category": cat.name
-    }
+    return {"id": doc.id, "filename": filename, "category": model_category.name, "probability": probability}
 
 @router.get("/documents")
 def list_documents(
@@ -195,11 +242,9 @@ def list_documents(
     for doc in documents:
         exists = file_exists(doc.file_path)
 
-        # файл исчез ТОЛЬКО СЕЙЧАС
         if not exists and doc.status != "missing":
             doc.status = "missing"
 
-            # 🔥 логируем ОДИН раз
             db.add(Log(
                 user_id=current_user.id,
                 document_id=doc.id,
@@ -547,3 +592,20 @@ def classification_metrics(db: Session = Depends(get_db), user=Depends(get_curre
         "confirmed": confirmed,
         "rejected": total - confirmed
     }
+@router.get("/reports/model-metrics")
+def get_model_metrics():
+    import os
+    import json
+
+    path = "storage/model_metrics.json"
+
+    if not os.path.exists(path):
+        return {
+            "accuracy": 0,
+            "precision": 0,
+            "recall": 0,
+            "f1": 0
+        }
+
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)

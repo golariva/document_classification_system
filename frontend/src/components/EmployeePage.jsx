@@ -3,8 +3,8 @@ import { getToken } from "../api";
 import styles from "./EmployeePage.module.css";
 
 export default function EmployeePage() {
-  const [file, setFile] = useState(null);
-  const [fileName, setFileName] = useState("");
+  const [files, setFiles] = useState([]);
+  const [results, setResults] = useState([]);
   const [documents, setDocuments] = useState([]);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -17,9 +17,15 @@ export default function EmployeePage() {
   const [progress, setProgress] = useState(0);
   const [uploading, setUploading] = useState(false);
   const [tempData, setTempData] = useState(null);
+  const [correctCategory, setCorrectCategory] = useState("");
+  const [showSelect, setShowSelect] = useState(false);
+  const [tempQueue, setTempQueue] = useState([]);
   const [autoConfirm, setAutoConfirm] = useState(
     localStorage.getItem("autoConfirm") === "true"
   );
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [classifyProgress, setClassifyProgress] = useState(0);
+  const [classifying, setClassifying] = useState(false);
 
   const limit = 5;
   const token = getToken();
@@ -62,73 +68,88 @@ export default function EmployeePage() {
     fetchDocuments();
   }, [page, search, categoryId]);
 
-  const confirmUpload = async (data, confirmed) => {
+  const confirmUpload = async (data, confirmed, trueCategoryId = null) => {
     const formData = new FormData();
 
     formData.append("temp_path", data.temp_path);
     formData.append("filename", data.filename);
     formData.append("category_name", data.category);
     formData.append("probability", data.probability);
-    formData.append("is_confirmed", confirmed);
+    formData.append("is_confirmed", confirmed ? "true" : "false");
 
-    await fetch("http://127.0.0.1:8000/confirm-upload", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
-      body: formData
-    });
-
-    setTempData(null);
-
-    if (confirmed) {
-      setResult(data); // показываем результат только если подтвердили
+    if (!confirmed && trueCategoryId) {
+      formData.append("true_category_id", trueCategoryId);
     }
 
-    fetchDocuments();
+    try {
+      const res = await fetch("http://127.0.0.1:8000/confirm-upload", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData
+      });
+
+      const result = await res.json(); // 👈 ВАЖНО
+      fetchDocuments();
+
+      return {
+        filename: data.filename,
+        category: result.category,
+        probability: result.probability
+      };
+    } catch (e) {
+      console.error(e);
+      return null;
+    }
   };
 
   const handleUpload = async () => {
-    if (!file) return;
+    const shouldAuto = localStorage.getItem("autoConfirm") === "true";
 
-    setUploading(true);
-    setProgress(0);
-    setResult(null);
+    if (!files.length) return;
+
+    setResults([]);
+    setTempQueue([]);
     setTempData(null);
+    setCurrentIndex(0);
 
-    const formData = new FormData();
-    formData.append("file", file);
+    const queue = [];
+    const finalResults = [];
 
-    const xhr = new XMLHttpRequest();
+    for (let f of files) {
+      const formData = new FormData();
+      formData.append("file", f);
 
-    xhr.open("POST", "http://127.0.0.1:8000/upload-temp");
-    xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+      const data = await new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("POST", "http://127.0.0.1:8000/upload-temp");
+        xhr.setRequestHeader("Authorization", `Bearer ${token}`);
 
-    // 🔥 прогресс загрузки
-    xhr.upload.onprogress = (event) => {
-      if (event.lengthComputable) {
-        const percent = Math.round((event.loaded / event.total) * 100);
-        setProgress(percent);
+        xhr.onload = () => resolve(JSON.parse(xhr.responseText));
+        xhr.onerror = reject;
+
+        xhr.send(formData);
+      });
+
+      queue.push(data);
+    }
+
+    setUploading(false);
+
+    if (shouldAuto) {
+      for (const item of queue) {
+        const res = await confirmUpload(item, true);
+        if (res) finalResults.push(res);
       }
-    };
 
-    xhr.onload = () => {
-      const data = JSON.parse(xhr.responseText);
+      setResults(finalResults);
+      setFiles([]);
+      return;
+    }
 
-      setUploading(false);
-
-      if (autoConfirm) {
-        confirmUpload(data, true);
-        setResult(data);
-      } else {
-        setTempData(data);
-      }
-    };
-
-    xhr.onerror = () => {
-      setUploading(false);
-      console.error("Upload error");
-    };
-
-    xhr.send(formData);
+    // ручной режим
+    setTempQueue(queue);
+    setCurrentIndex(0);
+    setTempData(queue[0]);
   };
 
   return (
@@ -183,18 +204,17 @@ export default function EmployeePage() {
         <label className={styles.fileBox}>
           <input
             type="file"
-            className={styles.hiddenInput}
+            multiple
             onChange={(e) => {
-              setFile(e.target.files[0]);
-              setFileName(e.target.files[0]?.name || "");
+              setFiles(Array.from(e.target.files));
             }}
           />
 
           <div className={styles.fileInner}>
             <span>Выберите файл</span>
-            <span className={styles.fileName}>
-              {fileName || "Файл не выбран"}
-            </span>
+              <span className={styles.fileName}>
+                {files.length ? `Файлов: ${files.length}` : "Файлы не выбраны"}
+              </span>
           </div>
         </label>
 
@@ -206,7 +226,6 @@ export default function EmployeePage() {
           {loading ? "Обработка..." : "Загрузить и классифицировать"}
         </button>
 
-        {/* PROGRESS */}
         {uploading && (
           <div className={styles.progressBar}>
             <div
@@ -216,23 +235,33 @@ export default function EmployeePage() {
           </div>
         )}
 
-        {/* RESULT */}
-        {result && !tempData && (
+        {classifying && (
+          <div className={styles.progressBar}>
+            <div
+              className={styles.progressFill}
+              style={{ width: `${classifyProgress}%` }}
+            />
+            <span>Классификация... {classifyProgress}%</span>
+          </div>
+        )}
+
+        {results.length > 0 && !tempData && (
           <div className={styles.result}>
-            <h3>Результат</h3>
-            <p>
-              <b>Файл:</b> {result.filename}
-            </p>
-            <p>
-              <b>Категория:</b> {result.category || "unknown"}
-            </p>
-            <p>
-              <b>Индекс категории:</b> {result.index_code || "unknown"}
-            </p>
-            <p>
-              <b>Вероятность:</b>{" "}
-              {(result.probability * 100).toFixed(1)}%
-            </p>
+            <h3>Результаты загрузки</h3>
+
+            {results.map((t, i) => (
+              <div key={i} className={styles.doc}>
+                <div>
+                  <b>{t.filename}</b>
+                  <div>
+                    Определенная категория: {t.category}
+                  </div>
+                  <div>
+                    Вероятность принадлжености: {(t.probability * 100).toFixed(1)}%
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         )}
 
@@ -272,19 +301,129 @@ export default function EmployeePage() {
               </label>
 
               <div className={styles.modalActions}>
-                <button
-                  className={styles.confirmBtn}
-                  onClick={() => confirmUpload(tempData, true)}
-                >
-                  Подтвердить
-                </button>
 
-                <button
-                  className={styles.cancelBtn}
-                  onClick={() => confirmUpload(tempData, false)}
-                >
-                  Отклонить
-                </button>
+                {!showSelect && (
+                  <div className={styles.modalActions}>
+                    <button
+                      className={styles.confirmBtn}
+                      onClick={async () => {
+                        const res = await confirmUpload(tempData, true);
+
+                        if (res) {
+                          setResults(prev => [...prev, res]);
+                        }
+
+                        const nextIndex = currentIndex + 1;
+
+                        if (nextIndex < tempQueue.length) {
+                          setCurrentIndex(nextIndex);
+                          setTempData(tempQueue[nextIndex]);
+                        } else {
+                          setTempData(null);
+                          setTempQueue([]);
+                        }
+
+                        setFiles([]);
+                        fetchDocuments();
+                      }}
+                    >
+                      Подтвердить
+                    </button>
+
+                    <button
+                      className={styles.secondaryBtn}
+                      onClick={() => setShowSelect(true)}
+                    >
+                      Выбрать другую категорию
+                    </button>
+
+                    <button
+                      className={styles.cancelBtn}
+                      onClick={async () => {
+                        await confirmUpload(tempData, false);
+
+                        const nextIndex = currentIndex + 1;
+
+                        if (nextIndex < tempQueue.length) {
+                          setCurrentIndex(nextIndex);
+                          setTempData(tempQueue[nextIndex]);
+                        } else {
+                          setTempData(null);
+                          setTempQueue([]);
+                        }
+
+                        setShowSelect(false);
+                        setCorrectCategory("");
+                        setFiles([]);
+
+                        fetchDocuments();
+                      }}
+                    >
+                      Отклонить
+                    </button>
+                  </div>
+                )}
+                {showSelect && (
+                  <div className={styles.selectBlock}>
+                    <select
+                      className={styles.select}
+                      value={correctCategory}
+                      onChange={(e) => setCorrectCategory(e.target.value)}
+                    >
+                      <option value="">Выберите категорию</option>
+                      {categories.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </select>
+
+                    <button
+                      className={styles.confirmBtn}
+                      disabled={!correctCategory}
+                      onClick={async () => {
+                        const res = await confirmUpload(
+                          tempData,
+                          false,
+                          correctCategory
+                        );
+
+                        if (res) {
+                          setResults(prev => [...prev, res]);
+                        }
+
+                        const nextIndex = currentIndex + 1;
+
+                        if (nextIndex < tempQueue.length) {
+                          setCurrentIndex(nextIndex);
+                          setTempData(tempQueue[nextIndex]);
+                        } else {
+                          setTempData(null);
+                          setTempQueue([]);
+                        }
+
+                        setShowSelect(false);
+                        setCorrectCategory("");
+                        setFiles([]);
+
+                        fetchDocuments();
+                      }}
+                    >
+                      Сохранить
+                    </button>
+
+                    <button
+                      className={styles.cancelBtn}
+                      onClick={() => {
+                        setShowSelect(false);
+                        setCorrectCategory("");
+                      }}
+                    >
+                      Назад
+                    </button>
+                  </div>
+                )}
+
               </div>
             </div>
           </div>

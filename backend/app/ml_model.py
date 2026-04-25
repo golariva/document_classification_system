@@ -16,39 +16,24 @@ group_map = {
     "ЛЭК": [
         "Протоколы ЛЭК ВКР Бизнес-информатика",
         "Протоколы ЛЭК ВКР Программная инженерия",
-        "Журнал протоколов ЛЭК Бизнес-информатика",
-        "Журнал протоколов ЛЭК Программная инженерия",
     ],
 
     # --- ГЭК ---
     "ГЭК": [
         "Итоговые заседания президиума ГЭК Бизнес-информатика",
         "Итоговые заседания президиума ГЭК Программная инженерия",
-        "Журнал итоговых заседаний ГЭК Бизнес-информатика",
-        "Журнал итоговых заседаний ГЭК Программная инженерия",
     ],
 
     # --- концепции ВКР ---
     "Концепции ВКР": [
         "Комиссия концепции ВКР англ. Бизнес-информатика",
         "Комиссия концепции ВКР англ. Программная инженерия",
-        "Журнал комиссии концепции ВКР Бизнес-информатика",
-        "Журнал комиссии концепции ВКР Программная инженерия",
     ],
 
     # --- отчёты ГЭК ---
     "Отчёты ГЭК": [
         "Отчет председателя ГЭК Бизнес-информатика",
         "Отчет председателя ГЭК Программная инженерия",
-    ],
-
-    # --- журналы ---
-    "Журналы": [
-        "Журнал учета выдачи студенческих билетов",
-        "Журнал регистрации справок",
-        "Журнал регистрации заявлений студентов",
-        "Журнал регистрации актов по студентам",
-        "Журнал приема-передачи документов",
     ],
 
     # --- документы сотрудников ---
@@ -60,34 +45,22 @@ group_map = {
 
     # --- студенты ---
     "Документы студентов": [
-        "Личные дела студентов",
         "Акты по работе со студентами",
-        "Документы проектной деятельности студентов",
-        "Заявления студентов",
-    ],
-
-    # --- дипломы ---
-    "Дипломы": [
-        "Книга регистрации дипломов БИ гос. образца",
-        "Книга регистрации дипломов ПИ гос. образца",
-        "Книга регистрации дипломов БИ НИУ ВШЭ",
-        "Книга регистрации дипломов ПИ НИУ ВШЭ",
-    ],
-
-    # --- БСО ---
-    "БСО": [
-        "Документы по учету бланков строгой отчетности",
+        "Акты приема-передачи документов",
     ],
 
     # --- номенклатура ---
     "Номенклатура": [
         "Номенклатура дел отдела",
     ],
+
+    "Документы студентов": [
+        "Документы проектной деятельности студентов",
+    ],
 }
 
 MODEL_PATH = "storage/model.pkl"
 VECTORIZER_PATH = "storage/vectorizer.pkl"
-
 
 def to_group(label, mapping):
     for group, labels in mapping.items():
@@ -102,22 +75,17 @@ def train_model(texts, labels):
         labels,
         test_size=0.2,
         random_state=42,
-        stratify=labels
+        stratify=labels,
+        shuffle=True
     )
 
-    vectorizer = FeatureUnion([
-        ("word", TfidfVectorizer(
-            analyzer="word",
-            ngram_range=(1, 2),
-            max_features=15000,
-            lowercase=True
-        )),
-        ("char", TfidfVectorizer(
-            analyzer="char_wb",
-            ngram_range=(3, 5),
-            max_features=30000
-        ))
-    ])
+    vectorizer = TfidfVectorizer(
+        analyzer="word",
+        ngram_range=(1, 3),
+        max_features=10000,
+        lowercase=True,
+        min_df=2
+    )
 
     X_train = vectorizer.fit_transform(X_train_text)
     X_test = vectorizer.transform(X_test_text)
@@ -142,9 +110,9 @@ def train_model(texts, labels):
     y_test_group = [to_group(l, group_map) for l in y_test]
     pred_group = [to_group(l, group_map) for l in pred]
 
-    labels_group = sorted(set(y_test_group))
+    labels_group = sorted(set(y_test))
 
-    cm = confusion_matrix(y_test_group, pred_group, labels=labels_group)
+    cm = confusion_matrix(y_test, pred, labels=labels_group)
 
     cm_df = pd.DataFrame(
         cm,
@@ -185,6 +153,18 @@ def train_model(texts, labels):
 
     joblib.dump(model, MODEL_PATH)
     joblib.dump(vectorizer, VECTORIZER_PATH)
+
+    import json
+
+    metrics = {
+        "accuracy": float(acc),
+        "precision": float(precision),
+        "recall": float(recall),
+        "f1": float(f1)
+    }
+
+    with open("storage/model_metrics.json", "w", encoding="utf-8") as f:
+        json.dump(metrics, f, ensure_ascii=False, indent=2)
 
 def predict(text):
 

@@ -43,7 +43,7 @@ export default function AdminPage() {
     const [c, d, m] = await Promise.all([
       fetch(`http://127.0.0.1:8000/reports/documents-by-category${query}`, { headers }).then(r => r.json()),
       fetch(`http://127.0.0.1:8000/reports/documents-dynamics${query}`, { headers }).then(r => r.json()),
-      fetch(`http://127.0.0.1:8000/reports/classification-metrics${query}`, { headers }).then(r => r.json())
+      fetch(`http://127.0.0.1:8000/reports/model-metrics${query}`, { headers }).then(r => r.json())
     ]);
 
     setReportCats(c);
@@ -330,6 +330,7 @@ export default function AdminPage() {
               <option value="КЛАССИФИЦИРОВАН ДОКУМЕНТ">Классификация</option>
               <option value="УДАЛЕН ДОКУМЕНТ">Удаление</option>
               <option value="ОТКЛОНЕНА КЛАССИФИКАЦИЯ">Отклонение</option>
+              <option value="ЗАГРУЗКА ДОКУМЕНТА С ДРУГОЙ КАТЕГОРИЕЙ">Другая категория</option>
             </select>
 
             <input
