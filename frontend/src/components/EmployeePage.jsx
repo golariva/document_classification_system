@@ -31,7 +31,7 @@ export default function EmployeePage() {
   const token = getToken();
 
   const fetchCategories = async () => {
-    const res = await fetch("http://127.0.0.1:8000/categories", {
+    const res = await fetch("http://109.73.205.67:8000/categories", {
       headers: { Authorization: `Bearer ${token}` }
     });
 
@@ -48,7 +48,7 @@ export default function EmployeePage() {
 
     try {
       const res = await fetch(
-        `http://127.0.0.1:8000/documents?skip=${(page - 1) * limit}&limit=${limit}&search=${search}&category=${categoryId}`,
+        `http://109.73.205.67:8000/documents?skip=${(page - 1) * limit}&limit=${limit}&search=${search}&category=${categoryId}`,
         {
           headers: { Authorization: `Bearer ${token}` }
         }
@@ -82,7 +82,7 @@ export default function EmployeePage() {
     }
 
     try {
-      const res = await fetch("http://127.0.0.1:8000/confirm-upload", {
+      const res = await fetch("http://109.73.205.67:8000/confirm-upload", {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
         body: formData
@@ -121,7 +121,7 @@ export default function EmployeePage() {
 
       const data = await new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
-        xhr.open("POST", "http://127.0.0.1:8000/upload-temp");
+        xhr.open("POST", "http://109.73.205.67:8000/upload-temp");
         xhr.setRequestHeader("Authorization", `Bearer ${token}`);
 
         xhr.onload = () => resolve(JSON.parse(xhr.responseText));

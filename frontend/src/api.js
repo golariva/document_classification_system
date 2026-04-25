@@ -1,5 +1,5 @@
 export const login = async (email, password) => {
-  const res = await fetch("http://127.0.0.1:8000/login", {
+  const res = await fetch("http://109.73.205.67:8000/login", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password })
@@ -17,3 +17,6 @@ export function getToken() {
 export function logout() {
   localStorage.removeItem("token");
 }
+
+//сервер: http://109.73.205.67:8000/login
+//локалка: http://109.73.205.67:8000/login

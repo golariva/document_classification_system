@@ -5,7 +5,7 @@ export default function ForgotPassword() {
   const [message, setMessage] = useState("");
 
   const handleReset = async () => {
-    const res = await fetch("http://127.0.0.1:8000/forgot-password", {
+    const res = await fetch("http://109.73.205.67:8000/forgot-password", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"

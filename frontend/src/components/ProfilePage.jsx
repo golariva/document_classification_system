@@ -13,7 +13,7 @@ export default function ProfilePage() {
   const [autoConfirm, setAutoConfirm] = useState(false);
 
   useEffect(() => {
-    fetch("http://127.0.0.1:8000/me", {
+    fetch("http://109.73.205.67:8000/me", {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(res => res.json())
@@ -36,7 +36,7 @@ export default function ProfilePage() {
       return;
     }
 
-    await fetch("http://127.0.0.1:8000/change-password", {
+    await fetch("http://109.73.205.67:8000/change-password", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

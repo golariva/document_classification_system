@@ -41,9 +41,9 @@ export default function AdminPage() {
     setAnimate(false);
 
     const [c, d, m] = await Promise.all([
-      fetch(`http://127.0.0.1:8000/reports/documents-by-category${query}`, { headers }).then(r => r.json()),
-      fetch(`http://127.0.0.1:8000/reports/documents-dynamics${query}`, { headers }).then(r => r.json()),
-      fetch(`http://127.0.0.1:8000/reports/model-metrics${query}`, { headers }).then(r => r.json())
+      fetch(`http://109.73.205.67:8000/reports/documents-by-category${query}`, { headers }).then(r => r.json()),
+      fetch(`http://109.73.205.67:8000/reports/documents-dynamics${query}`, { headers }).then(r => r.json()),
+      fetch(`http://109.73.205.67:8000/reports/model-metrics${query}`, { headers }).then(r => r.json())
     ]);
 
     setReportCats(c);
@@ -114,7 +114,7 @@ export default function AdminPage() {
   })}
 
   const fetchCategories = async () => {
-    const res = await fetch("http://127.0.0.1:8000/categories", {
+    const res = await fetch("http://109.73.205.67:8000/categories", {
       headers: { Authorization: `Bearer ${token}` }
     });
     const data = await res.json();
@@ -125,7 +125,7 @@ export default function AdminPage() {
     const skip = (page - 1) * limit;
 
     const res = await fetch(
-      `http://127.0.0.1:8000/logs?search=${logSearch}&type=${logType}&from_date=${fromDate1}&to_date=${toDate1}&skip=${skip}&limit=${limit}`,
+      `http://109.73.205.67:8000/logs?search=${logSearch}&type=${logType}&from_date=${fromDate1}&to_date=${toDate1}&skip=${skip}&limit=${limit}`,
       {
         headers: { Authorization: `Bearer ${token}` }
       }
@@ -155,7 +155,7 @@ export default function AdminPage() {
       parent_id: newCategory.parent_id === "" ? null : Number(newCategory.parent_id)
     };
 
-    await fetch("http://127.0.0.1:8000/categories", {
+    await fetch("http://109.73.205.67:8000/categories", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -177,7 +177,7 @@ export default function AdminPage() {
   };
 
   const checkDelete = async (id) => {
-    const res = await fetch(`http://127.0.0.1:8000/categories/${id}/can-delete`, {
+    const res = await fetch(`http://109.73.205.67:8000/categories/${id}/can-delete`, {
       headers: { Authorization: `Bearer ${token}` }
     });
 
@@ -199,12 +199,12 @@ export default function AdminPage() {
 
       if (!confirmDelete) return;
 
-      await fetch(`http://127.0.0.1:8000/categories/${id}?force=true`, {
+      await fetch(`http://109.73.205.67:8000/categories/${id}?force=true`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` }
       });
     } else {
-      await fetch(`http://127.0.0.1:8000/categories/${id}`, {
+      await fetch(`http://109.73.205.67:8000/categories/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` }
       });
