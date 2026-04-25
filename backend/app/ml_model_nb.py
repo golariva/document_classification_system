@@ -7,6 +7,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support
 
 from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.naive_bayes import MultinomialNB
 
 MODEL_PATH = "storage/model_nb.pkl"
@@ -38,9 +39,9 @@ def train_model(texts, labels):
 
     X_train_text = [augment(x) for x in X_train_text]
 
-    vectorizer = TfidfVectorizer(
+    vectorizer = CountVectorizer(
         analyzer="word",
-        ngram_range=(1, 2),
+        ngram_range=(1,3),
         max_features=10000,
         min_df=2
     )
