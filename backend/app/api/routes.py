@@ -593,19 +593,39 @@ def classification_metrics(db: Session = Depends(get_db), user=Depends(get_curre
         "rejected": total - confirmed
     }
 @router.get("/reports/model-metrics")
-def get_model_metrics():
+def get_model_metrics(db: Session = Depends(get_db)):
     import os
     import json
+    from app.models.classification_result import ClassificationResult
 
     path = "storage/model_metrics.json"
 
-    if not os.path.exists(path):
-        return {
+    # метрики модели (из файла)
+    if os.path.exists(path):
+        with open(path, "r", encoding="utf-8") as f:
+            model_metrics = json.load(f)
+    else:
+        model_metrics = {
             "accuracy": 0,
             "precision": 0,
             "recall": 0,
             "f1": 0
         }
 
-    with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
+    # метрики из БД
+    total = db.query(ClassificationResult).count()
+
+    confirmed = db.query(ClassificationResult).filter(
+        ClassificationResult.is_confirmed == True
+    ).count()
+
+    rejected = db.query(ClassificationResult).filter(
+        ClassificationResult.is_confirmed == False
+    ).count()
+
+    return {
+        **model_metrics,
+        "total": total,
+        "confirmed": confirmed,
+        "rejected": rejected
+    }
