@@ -253,6 +253,13 @@ export default function AdminPage() {
           className={tab === "categories" ? styles.mainButton : styles.navBtn}
           onClick={() => setTab("categories")}
         >
+          Пользователи
+        </button>
+
+        <button
+          className={tab === "categories" ? styles.mainButton : styles.navBtn}
+          onClick={() => setTab("categories")}
+        >
           Категории
         </button>
 
