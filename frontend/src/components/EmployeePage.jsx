@@ -26,8 +26,9 @@ export default function EmployeePage() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [classifyProgress, setClassifyProgress] = useState(0);
   const [classifying, setClassifying] = useState(false);
+  const [confirmLoading, setConfirmLoading] = useState(false);
 
-  const limit = 5;
+  const limit = 10;
   const token = getToken();
 
   const fetchCategories = async () => {
@@ -112,6 +113,9 @@ export default function EmployeePage() {
     setTempData(null);
     setCurrentIndex(0);
 
+    setUploading(true);
+    setProgress(0);
+
     const queue = [];
     const finalResults = [];
 
@@ -131,18 +135,38 @@ export default function EmployeePage() {
       });
 
       queue.push(data);
+      setProgress(Math.round((queue.length / files.length) * 100));
     }
 
     setUploading(false);
 
     if (shouldAuto) {
-      for (const item of queue) {
+
+      setClassifying(true);
+      setClassifyProgress(0);
+
+      for (let i = 0; i < queue.length; i++) {
+        const item = queue[i];
+
         const res = await confirmUpload(item, true);
-        if (res) finalResults.push(res);
+
+        if (res) {
+          finalResults.push(res);
+        }
+
+        setClassifyProgress(
+          Math.round(((i + 1) / queue.length) * 100)
+        );
       }
+
+      setClassifying(false);
+      setUploading(false);
 
       setResults(finalResults);
       setFiles([]);
+
+      fetchDocuments();
+
       return;
     }
 
@@ -205,6 +229,7 @@ export default function EmployeePage() {
           <input
             type="file"
             multiple
+            accept=".txt,.docx,.pdf"
             onChange={(e) => {
               setFiles(Array.from(e.target.files));
             }}
@@ -236,12 +261,13 @@ export default function EmployeePage() {
         )}
 
         {classifying && (
-          <div className={styles.progressBar}>
-            <div
-              className={styles.progressFill}
-              style={{ width: `${classifyProgress}%` }}
-            />
-            <span>Классификация... {classifyProgress}%</span>
+          <div className={styles.loadingBlock}>
+            <div className={styles.spinner}></div>
+
+            <p>
+              Выполняется классификация...
+              {files.length > 1 && ` ${classifyProgress}%`}
+            </p>
           </div>
         )}
 
@@ -302,11 +328,22 @@ export default function EmployeePage() {
 
               <div className={styles.modalActions}>
 
-                {!showSelect && (
+                {confirmLoading && (
+                  <div className={styles.loadingBlock}>
+                    <div className={styles.spinner}></div>
+                    <p>Сохранение документа...</p>
+                  </div>
+                )}
+
+                {!showSelect && !confirmLoading && (
                   <div className={styles.modalActions}>
                     <button
                       className={styles.confirmBtn}
+                      disabled={confirmLoading}
                       onClick={async () => {
+
+                        setConfirmLoading(true);
+
                         const res = await confirmUpload(tempData, true);
 
                         if (res) {
@@ -324,7 +361,10 @@ export default function EmployeePage() {
                         }
 
                         setFiles([]);
+
                         fetchDocuments();
+
+                        setConfirmLoading(false);
                       }}
                     >
                       Подтвердить
@@ -332,6 +372,7 @@ export default function EmployeePage() {
 
                     <button
                       className={styles.secondaryBtn}
+                      disabled={confirmLoading}
                       onClick={() => setShowSelect(true)}
                     >
                       Выбрать другую категорию
@@ -339,6 +380,7 @@ export default function EmployeePage() {
 
                     <button
                       className={styles.cancelBtn}
+                      disabled={confirmLoading}
                       onClick={async () => {
                         await confirmUpload(tempData, false);
 
@@ -363,7 +405,7 @@ export default function EmployeePage() {
                     </button>
                   </div>
                 )}
-                {showSelect && (
+                {showSelect && !confirmLoading && (
                   <div className={styles.selectBlock}>
                     <select
                       className={styles.select}
@@ -380,7 +422,7 @@ export default function EmployeePage() {
 
                     <button
                       className={styles.confirmBtn}
-                      disabled={!correctCategory}
+                      disabled={confirmLoading || !correctCategory}
                       onClick={async () => {
                         const res = await confirmUpload(
                           tempData,

@@ -9,7 +9,7 @@ from app.services.document_service import create_document, get_documents
 from app.services.category_service import get_categories
 
 from fastapi import HTTPException
-from app.services.auth_service import authenticate_user
+from app.services.auth_service import authenticate_user, hash_password
 from app.core.security import create_access_token
 from app.models.user import User
 from app.models.log import Log
@@ -24,6 +24,19 @@ router = APIRouter()
 
 class LoginRequest(BaseModel):
     email: str
+    password: str
+
+class UpdateUser(BaseModel):
+    username: str
+    email: str
+    role: str
+
+class UpdateCategory(BaseModel):
+    name: str
+    description: str | None = None
+    storage_period: str | None = None
+
+class DeleteUserRequest(BaseModel):
     password: str
 
 UPLOAD_DIR = "storage"
@@ -53,6 +66,15 @@ def upload_temp(
     from app.ml_model import predict
 
     safe_filename = f"{uuid.uuid4()}_{file.filename}"
+
+    allowed_extensions = [".txt", ".docx", ".pdf"]
+
+    if not any(file.filename.lower().endswith(ext) for ext in allowed_extensions):
+        raise HTTPException(
+            status_code=400,
+            detail="Unsupported file format"
+        )
+
     temp_path = os.path.join(UPLOAD_DIR, safe_filename)
 
     with open(temp_path, "wb") as buffer:
@@ -120,6 +142,14 @@ def confirm_upload(
         db.add(Log(
             user_id=current_user.id,
             document_id=doc.id,
+            action_type="КЛАССИФИЦИРОВАН ДОКУМЕНТ",
+            description=f"Модель классифицировала файл '{filename}' как '{category_name}' с вероятностью {probability:.2f}"
+        ))
+        db.commit()
+
+        db.add(Log(
+            user_id=current_user.id,
+            document_id=doc.id,
             action_type="ЗАГРУЗКА ДОКУМЕНТА С ДРУГОЙ КАТЕГОРИЕЙ",
             description=f"Файл '{filename}' перенесён из '{model_category.name}' в '{cat.name}'"
         ))
@@ -140,19 +170,26 @@ def confirm_upload(
     # CASE 2: reject (ОТКЛОНЕНО)
     # =========================
     if not is_confirmed:
-        os.makedirs(model_category.storage_path, exist_ok=True)
-        final_path = os.path.join(model_category.storage_path, filename)
 
-        shutil.move(temp_path, final_path)
+        # ❌ файл НЕ сохраняем вообще
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
 
-        ensure_folder(f"/{model_category.storage_path}")
-        upload_to_yandex(final_path, f"/{model_category.storage_path}/{filename}")
+        db.add(Log(
+            user_id=current_user.id,
+            action_type="КЛАССИФИЦИРОВАН ДОКУМЕНТ",
+            description=(
+                f"Модель классифицировала '{filename}' как '{model_category.name}' "
+                f"с вероятностью {probability:.2f}. Пользователь ОТКЛОНИЛ загрузку"
+            )
+        ))
 
         db.add(Log(
             user_id=current_user.id,
             action_type="ОТКЛОНЕНА КЛАССИФИКАЦИЯ",
-            description=f"Файл '{filename}' отклонён. Модель: '{model_category.name}'"
+            description=f"Пользователь отменил загрузку файла '{filename}'"
         ))
+
         db.commit()
 
         db.add(ClassificationResult(
@@ -161,9 +198,14 @@ def confirm_upload(
             probability=probability,
             is_confirmed=False
         ))
+
         db.commit()
 
-        return {"filename": filename, "category": model_category.name, "probability": probability}
+        return {
+            "filename": filename,
+            "category": model_category.name,
+            "probability": probability
+        }
 
     # =========================
     # CASE 3: confirm (ПОДТВЕРДИЛ)
@@ -183,6 +225,14 @@ def confirm_upload(
         user_id=current_user.id,
         category_id=model_category.id
     )
+
+    db.add(Log(
+        user_id=current_user.id,
+        document_id=doc.id,
+        action_type="КЛАССИФИЦИРОВАН ДОКУМЕНТ",
+        description=f"Модель классифицировала файл '{filename}' как '{category_name}' с вероятностью {probability:.2f}"
+    ))
+    db.commit()
 
     db.add(Log(
         user_id=current_user.id,
@@ -629,3 +679,154 @@ def get_model_metrics(db: Session = Depends(get_db)):
         "confirmed": confirmed,
         "rejected": rejected
     }
+
+@router.get("/users")
+def get_users(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    users = db.query(User).order_by(User.id.asc()).all()
+
+    return [
+        {
+            "id": u.id,
+            "username": u.username,
+            "email": u.email,
+            "role": u.role,
+            "created_at": u.created_at.strftime("%d.%m.%Y %H:%M")
+        }
+        for u in users
+    ]
+
+@router.post("/users")
+def create_user(
+    data: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    exists = db.query(User).filter(User.email == data["email"]).first()
+
+    if exists:
+        raise HTTPException(status_code=400, detail="Email already exists")
+
+    user = User(
+        username=data["username"],
+        email=data["email"],
+        password_hash=hash_password(data["password"]),
+        role=data["role"]
+    )
+
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+
+    return {"ok": True}
+
+@router.delete("/users/{user_id}")
+def delete_user(
+    user_id: int,
+    data: DeleteUserRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    user = db.query(User).get(user_id)
+
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # 1. нельзя удалить самого себя
+    if user.id == current_user.id:
+        raise HTTPException(
+            status_code=400,
+            detail="You cannot delete yourself"
+        )
+
+    # 2. проверка пароля УДАЛЯЕМОГО пользователя
+    from app.services.auth_service import verify_password
+
+    if not verify_password(data.password, user.password_hash):
+        raise HTTPException(
+            status_code=403,
+            detail="Wrong user password"
+        )
+
+    db.delete(user)
+    db.commit()
+
+    return {"ok": True}
+
+@router.put("/users/{user_id}/role")
+def change_role(
+    user_id: int,
+    data: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    user = db.query(User).get(user_id)
+
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    user.role = data["role"]
+    db.commit()
+
+    return {"ok": True}
+
+@router.put("/users/{user_id}")
+def update_user(
+    user_id: int,
+    data: UpdateUser,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    user = db.query(User).get(user_id)
+
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if user.id == current_user.id and data.role != user.role:
+        raise HTTPException(
+            status_code=400,
+            detail="You cannot change your own role"
+        )
+
+    exists = db.query(User).filter(
+        User.email == data.email,
+        User.id != user.id
+    ).first()
+
+    if exists:
+        raise HTTPException(
+            status_code=400,
+            detail="Email already exists"
+        )
+
+    user.username = data.username
+    user.email = data.email
+    user.role = data.role
+
+    db.commit()
+
+    return {"ok": True}
+
+@router.put("/categories/{category_id}")
+def update_category(
+    category_id: int,
+    data: UpdateCategory,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    from app.models.category import Category
+
+    category = db.query(Category).get(category_id)
+
+    if not category:
+        raise HTTPException(status_code=404, detail="Category not found")
+
+    category.name = data.name
+    category.description = data.description
+    category.storage_period = data.storage_period
+
+    db.commit()
+
+    return {"ok": True}

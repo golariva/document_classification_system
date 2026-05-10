@@ -24,6 +24,30 @@ export default function AdminPage() {
   const [page, setPage] = useState(1);
   const limit = 20;
   const [totalLogs, setTotalLogs] = useState(0);
+  const [editingUserId, setEditingUserId] = useState(null);
+  const [editingCategoryId, setEditingCategoryId] = useState(null);
+  const totalPages = Math.ceil(totalLogs / limit);
+
+  const [editUser, setEditUser] = useState({
+    username: "",
+    email: "",
+    role: "employee"
+  });
+
+  const [editCategory, setEditCategory] = useState({
+    name: "",
+    description: "",
+    storage_period: ""
+  });
+
+  const [users, setUsers] = useState([]);
+
+  const [newUser, setNewUser] = useState({
+    username: "",
+    email: "",
+    password: "",
+    role: "employee"
+  });
 
   const [newCategory, setNewCategory] = useState({
     name: "",
@@ -33,6 +57,103 @@ export default function AdminPage() {
     storage_period: "",
     parent_id: ""
   });
+
+  const updateUser = async (id) => {
+    const res = await fetch(`http://109.73.205.67:8000/users/${id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify(editUser)
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      alert(err.detail);
+      return;
+    }
+
+    setEditingUserId(null);
+    fetchUsers();
+  };
+
+  const updateCategory = async (id) => {
+    await fetch(`http://109.73.205.67:8000/categories/${id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify(editCategory)
+    });
+
+    setEditingCategoryId(null);
+    fetchCategories();
+  };
+
+  const fetchUsers = async () => {
+    const res = await fetch("http://109.73.205.67:8000/users", {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    const data = await res.json();
+    setUsers(data);
+  };
+
+  const addUser = async () => {
+    await fetch("http://109.73.205.67:8000/users", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify(newUser)
+    });
+
+    setNewUser({
+      username: "",
+      email: "",
+      password: "",
+      role: "employee"
+    });
+
+    fetchUsers();
+  };
+
+  const deleteUser = async (id) => {
+    const password = prompt("Введите ваш пароль для подтверждения:");
+
+    if (!password) return;
+
+    await fetch(`http://109.73.205.67:8000/users/${id}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({ password })
+    });
+
+    fetchUsers();
+  };
+
+  const changeRole = async (id, role) => {
+    await fetch(`http://109.73.205.67:8000/users/${id}/role`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({ role })
+    });
+
+    fetchUsers();
+  };
+
+  useEffect(() => {
+    if (tab === "users") fetchUsers();
+  }, [tab]);
 
   const fetchReports = async () => {
     const headers = { Authorization: `Bearer ${token}` };
@@ -118,6 +239,7 @@ export default function AdminPage() {
       headers: { Authorization: `Bearer ${token}` }
     });
     const data = await res.json();
+    data.sort((a, b) => a.id - b.id);
     setCategories(data);
   };
 
@@ -132,9 +254,13 @@ export default function AdminPage() {
     );
 
     const data = await res.json();
-    setLogs(data.items);
-    setTotalLogs(data.total);
+    setLogs(data.items || []);
+    setTotalLogs(data.total || 0);
   };
+
+  useEffect(() => {
+    setPage(1);
+  }, [logSearch, logType, fromDate1, toDate1]);
 
   useEffect(() => {
     if (tab === "logs") {
@@ -250,8 +376,8 @@ export default function AdminPage() {
       {/* TABS */}
       <div className={styles.nav}>
         <button
-          className={tab === "categories" ? styles.mainButton : styles.navBtn}
-          onClick={() => setTab("categories")}
+          className={tab === "users" ? styles.mainButton : styles.navBtn}
+          onClick={() => setTab("users")}
         >
           Пользователи
         </button>
@@ -278,37 +404,303 @@ export default function AdminPage() {
         </button>
       </div>
 
+      {tab === "users" && (
+        <div className={styles.card}>
+          <h2 className={styles.cardTitle}>Пользователи</h2>
+
+          <div className={styles.form}>
+            <input
+              className={styles.input}
+              placeholder="Имя"
+              value={newUser.username}
+              onChange={(e) =>
+                setNewUser({ ...newUser, username: e.target.value })
+              }
+            />
+
+            <input
+              className={styles.input}
+              placeholder="Email"
+              value={newUser.email}
+              onChange={(e) =>
+                setNewUser({ ...newUser, email: e.target.value })
+              }
+            />
+
+            <input
+              className={styles.input}
+              placeholder="Пароль"
+              value={newUser.password}
+              onChange={(e) =>
+                setNewUser({ ...newUser, password: e.target.value })
+              }
+            />
+
+            <select
+              className={styles.input}
+              value={newUser.role}
+              onChange={(e) =>
+                setNewUser({ ...newUser, role: e.target.value })
+              }
+            >
+              <option value="employee">employee</option>
+              <option value="admin">admin</option>
+            </select>
+          </div>
+
+          <button className={styles.mainButton} onClick={addUser}>
+            Добавить
+          </button>
+
+          {users.map((u) => (
+            <div key={u.id} className={styles.doc}>
+
+              {editingUserId === u.id ? (
+                <div className={styles.form}>
+                  <input
+                    className={styles.input}
+                    value={editUser.username}
+                    onChange={(e) =>
+                      setEditUser({ ...editUser, username: e.target.value })
+                    }
+                  />
+
+                  <input
+                    className={styles.input}
+                    value={editUser.email}
+                    onChange={(e) =>
+                      setEditUser({ ...editUser, email: e.target.value })
+                    }
+                  />
+
+                  <select
+                    className={styles.input}
+                    value={editUser.role}
+                    onChange={(e) =>
+                      setEditUser({ ...editUser, role: e.target.value })
+                    }
+                  >
+                    <option value="employee">employee</option>
+                    <option value="admin">admin</option>
+                  </select>
+
+                  <button
+                    className={styles.smallBtn}
+                    onClick={() => updateUser(u.id)}
+                  >
+                    сохранить
+                  </button>
+
+                  <button
+                    className={styles.smallBtn}
+                    onClick={() => setEditingUserId(null)}
+                  >
+                    отмена
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div>
+                    <b>{u.username}</b>
+                    <div className={styles.path}>{u.email}</div>
+                    <div className={styles.path}>Роль: {u.role}</div>
+                  </div>
+
+                  <div style={{ display: "flex", gap: "8px" }}>
+                    <button
+                      className={styles.smallBtn}
+                      onClick={() => {
+                        setEditingUserId(u.id);
+
+                        setEditUser({
+                          username: u.username,
+                          email: u.email,
+                          role: u.role
+                        });
+                      }}
+                    >
+                      редактировать
+                    </button>
+
+                    <button
+                      className={styles.smallBtn}
+                      onClick={() => deleteUser(u.id)}
+                    >
+                      удалить
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* ================= CATEGORIES ================= */}
       {tab === "categories" && (
         <div className={styles.card}>
           <h2 className={styles.cardTitle}>Категории</h2>
 
           <div className={styles.form}>
-            <input className={styles.input} placeholder="Название" />
-            <input className={styles.input} placeholder="Путь хранения" />
-            <input className={styles.input} placeholder="Описание" />
-            <input className={styles.input} placeholder="Код индекса" />
-            <input className={styles.input} placeholder="Срок хранения" />
-            <input className={styles.input} placeholder="ID родителя" />
-          </div>
+            <input
+              className={styles.input}
+              placeholder="Название"
+              value={newCategory.name}
+              onChange={(e) =>
+                setNewCategory({ ...newCategory, name: e.target.value })
+              }
+            />
 
-          <button className={styles.mainButton} onClick={handleAddCategory}>
-            Добавить
-          </button>
+            <input
+              className={styles.input}
+              placeholder="Путь хранения"
+              value={newCategory.storage_path}
+              onChange={(e) =>
+                setNewCategory({ ...newCategory, storage_path: e.target.value })
+              }
+            />
+
+            <input
+              className={styles.input}
+              placeholder="Описание"
+              value={newCategory.description}
+              onChange={(e) =>
+                setNewCategory({ ...newCategory, description: e.target.value })
+              }
+            />
+
+            <input
+              className={styles.input}
+              placeholder="Код индекса"
+              value={newCategory.index_code}
+              onChange={(e) =>
+                setNewCategory({ ...newCategory, index_code: e.target.value })
+              }
+            />
+
+            <input
+              className={styles.input}
+              placeholder="Срок хранения"
+              value={newCategory.storage_period}
+              onChange={(e) =>
+                setNewCategory({ ...newCategory, storage_period: e.target.value })
+              }
+            />
+
+            <input
+              className={styles.input}
+              placeholder="ID родителя"
+              value={newCategory.parent_id}
+              onChange={(e) =>
+                setNewCategory({ ...newCategory, parent_id: e.target.value })
+              }
+            />
+
+            <button className={styles.mainButton} onClick={handleAddCategory}>
+              Добавить
+            </button>
+          </div>
 
           {categories.map((cat) => (
             <div key={cat.id} className={styles.doc}>
-              <div>
-                <b>{cat.name}</b>
-                <div className={styles.path}>{cat.storage_path}</div>
-              </div>
 
-              <button
-                className={styles.smallBtn}
-                onClick={() => deleteCategory(cat.id)}
-              >
-                удалить
-              </button>
+              {editingCategoryId === cat.id ? (
+                <div className={styles.form}>
+                  <input
+                    className={styles.input}
+                    value={editCategory.name}
+                    onChange={(e) =>
+                      setEditCategory({
+                        ...editCategory,
+                        name: e.target.value
+                      })
+                    }
+                  />
+
+                  <input
+                    className={styles.input}
+                    value={editCategory.description}
+                    onChange={(e) =>
+                      setEditCategory({
+                        ...editCategory,
+                        description: e.target.value
+                      })
+                    }
+                  />
+
+                  <input
+                    className={styles.input}
+                    value={editCategory.storage_period}
+                    onChange={(e) =>
+                      setEditCategory({
+                        ...editCategory,
+                        storage_period: e.target.value
+                      })
+                    }
+                  />
+
+                  <button
+                    className={styles.smallBtn}
+                    onClick={() => updateCategory(cat.id)}
+                  >
+                    сохранить
+                  </button>
+
+                  <button
+                    className={styles.smallBtn}
+                    onClick={() => setEditingCategoryId(null)}
+                  >
+                    отмена
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div>
+                    <b>{cat.name}</b>
+
+                    <div className={styles.path}>
+                      {cat.storage_path}
+                    </div>
+
+                    <div className={styles.path}>
+                      {cat.description || "Без описания"}
+                    </div>
+
+                    <div className={styles.path}>
+                      Срок хранения: {cat.storage_period || "не указан"}
+                    </div>
+
+                    <div className={styles.path}>
+                      Идентификатор: {cat.id}
+                    </div>
+                  </div>
+
+                  <div style={{ display: "flex", gap: "8px" }}>
+                    <button
+                      className={styles.smallBtn}
+                      onClick={() => {
+                        setEditingCategoryId(cat.id);
+
+                        setEditCategory({
+                          name: cat.name || "",
+                          description: cat.description || "",
+                          storage_period: cat.storage_period || ""
+                        });
+                      }}
+                    >
+                      редактировать
+                    </button>
+
+                    <button
+                      className={styles.smallBtn}
+                      onClick={() => deleteCategory(cat.id)}
+                    >
+                      удалить
+                    </button>
+                  </div>
+                </>
+              )}
+
             </div>
           ))}
         </div>
@@ -333,10 +725,10 @@ export default function AdminPage() {
               onChange={(e) => setLogType(e.target.value)}
             >
               <option value="">Все типы</option>
-              <option value="ЗАГРУЗКА ДОКУМЕНТА">Загрузка</option>
-              <option value="КЛАССИФИЦИРОВАН ДОКУМЕНТ">Классификация</option>
-              <option value="УДАЛЕН ДОКУМЕНТ">Удаление</option>
-              <option value="ОТКЛОНЕНА КЛАССИФИКАЦИЯ">Отклонение</option>
+              <option value="ЗАГРУЗКА ДОКУМЕНТА">Загрузка документа</option>
+              <option value="КЛАССИФИЦИРОВАН ДОКУМЕНТ">Классификация документа</option>
+              <option value="УДАЛЕН ДОКУМЕНТ">Удаление документа</option>
+              <option value="ОТКЛОНЕНА КЛАССИФИКАЦИЯ">Отклонение документа</option>
               <option value="ЗАГРУЗКА ДОКУМЕНТА С ДРУГОЙ КАТЕГОРИЕЙ">Другая категория</option>
             </select>
 
@@ -353,10 +745,6 @@ export default function AdminPage() {
               value={toDate1}
               onChange={(e) => setToDate1(e.target.value)}
             />
-
-            <button className={styles.mainButton} onClick={fetchLogs}>
-              Применить
-            </button>
           </div>
 
           {logs.map((log) => (
@@ -373,15 +761,21 @@ export default function AdminPage() {
           ))}
 
           <div className={styles.pagination}>
-            <button className={styles.smallBtn} disabled={page === 1} onClick={() => setPage(page - 1)}>
+            <button
+              className={styles.smallBtn}
+              disabled={page === 1}
+              onClick={() => setPage(page - 1)}
+            >
               Назад
             </button>
 
-            <span>Страница {page}</span>
+            <span>
+              Страница {page} из {Math.ceil(totalLogs / limit)}
+            </span>
 
             <button
               className={styles.smallBtn}
-              disabled={page * limit >= totalLogs}
+              disabled={page >= totalPages}
               onClick={() => setPage(page + 1)}
             >
               Вперёд
