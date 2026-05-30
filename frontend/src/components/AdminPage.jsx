@@ -102,14 +102,28 @@ export default function AdminPage() {
   };
 
   const addUser = async () => {
-    await fetch("http://109.73.205.67:8000/users", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`
-      },
-      body: JSON.stringify(newUser)
-    });
+    const res = await fetch(
+      "http://109.73.205.67:8000/users",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(newUser)
+      }
+    );
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      alert(data.detail);
+      return;
+    }
+
+    alert(
+      `Пользователь создан\nКод восстановления: ${data.reset_code}`
+    );
 
     setNewUser({
       username: "",
@@ -502,8 +516,18 @@ export default function AdminPage() {
                 <>
                   <div>
                     <b>{u.username}</b>
-                    <div className={styles.path}>{u.email}</div>
-                    <div className={styles.path}>Роль: {u.role}</div>
+
+                    <div className={styles.path}>
+                      {u.email}
+                    </div>
+
+                    <div className={styles.path}>
+                      Роль: {u.role}
+                    </div>
+
+                    <div className={styles.path}>
+                      Код восстановления: <b>{u.reset_code}</b>
+                    </div>
                   </div>
 
                   <div style={{ display: "flex", gap: "8px" }}>

@@ -1,38 +1,82 @@
 import { useState } from "react";
+import "./LoginForm.css";
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
+  const [resetCode, setResetCode] = useState("");
+  const [newPassword, setNewPassword] = useState("");
   const [message, setMessage] = useState("");
 
   const handleReset = async () => {
-    const res = await fetch("http://109.73.205.67:8000/forgot-password", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ email })
-    });
+    const res = await fetch(
+      "http://109.73.205.67:8000/reset-password",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          email,
+          reset_code: resetCode,
+          new_password: newPassword
+        })
+      }
+    );
 
     const data = await res.json();
-    setMessage(data.message);
+
+    if (res.ok) {
+      setMessage(
+        "Пароль изменен. Новый код восстановления: " +
+        data.new_reset_code
+      );
+    } else {
+      setMessage(data.detail);
+    }
   };
 
   return (
-    <div style={{ padding: "40px" }}>
-      <h2>Восстановление пароля</h2>
+    <main className="login-container">
+      <div className="title-block">
+        <h1>
+          Восстановление пароля
+        </h1>
+      </div>
 
-      <input
-        type="email"
-        placeholder="Введите email"
-        value={email}
-        onChange={e => setEmail(e.target.value)}
-      />
+      <div className="login-card">
+        <h2>Смена пароля</h2>
 
-      <button onClick={handleReset}>
-        Отправить
-      </button>
+        <input
+          type="email"
+          placeholder="Email"
+          value={email}
+          onChange={e => setEmail(e.target.value)}
+        />
 
-      {message && <p>{message}</p>}
-    </div>
+        <input
+          type="text"
+          placeholder="Код восстановления"
+          value={resetCode}
+          onChange={e => setResetCode(e.target.value)}
+        />
+
+        <input
+          type="password"
+          placeholder="Новый пароль"
+          value={newPassword}
+          onChange={e => setNewPassword(e.target.value)}
+        />
+
+        <button onClick={handleReset}>
+          Сменить пароль
+        </button>
+
+        {message && (
+          <p className="error">
+            {message}
+          </p>
+        )}
+      </div>
+    </main>
   );
 }

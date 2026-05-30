@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 import shutil
 import os
 from sqlalchemy.sql import func
+import secrets
 
 from app.db.database import get_db
 from app.services.document_service import create_document, get_documents
@@ -392,20 +393,52 @@ import uuid
 class ResetRequest(BaseModel):
     email: str
 
-@router.post("/forgot-password")
-def reset_password(data: ResetRequest, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.email == data.email).first()
+class ResetPasswordRequest(BaseModel):
+    email: str
+    reset_code: str
+    new_password: str
+
+
+@router.post("/reset-password")
+def reset_password(
+    data: ResetPasswordRequest,
+    db: Session = Depends(get_db)
+):
+    user = db.query(User).filter(
+        User.email == data.email
+    ).first()
 
     if not user:
-        return {"message": "Если email существует — инструкция отправлена"}
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid data"
+        )
 
-    # генерируем токен
-    token = str(uuid.uuid4())
+    if user.reset_code != data.reset_code:
+        raise HTTPException(
+            status_code=403,
+            detail="Wrong reset code"
+        )
 
-    # пока просто выводим в консоль
-    print(f"RESET TOKEN for {user.email}: {token}")
+    if len(data.new_password) < 8:
+        raise HTTPException(
+            status_code=400,
+            detail="Weak password"
+        )
 
-    return {"message": "Проверьте консоль сервера (пока без email)"}
+    user.password_hash = hash_password(
+        data.new_password
+    )
+
+    # новый код после восстановления
+    user.reset_code = generate_reset_code()
+
+    db.commit()
+
+    return {
+        "message": "Пароль изменен",
+        "new_reset_code": user.reset_code
+    }
 
 @router.post("/categories")
 def create_category(data: dict, db: Session = Depends(get_db)):
@@ -693,10 +726,14 @@ def get_users(
             "username": u.username,
             "email": u.email,
             "role": u.role,
+            "reset_code": u.reset_code,
             "created_at": u.created_at.strftime("%d.%m.%Y %H:%M")
         }
         for u in users
     ]
+
+def generate_reset_code():
+    return secrets.token_hex(4).upper()
 
 @router.post("/users")
 def create_user(
@@ -713,14 +750,18 @@ def create_user(
         username=data["username"],
         email=data["email"],
         password_hash=hash_password(data["password"]),
-        role=data["role"]
+        role=data["role"],
+        reset_code=generate_reset_code()
     )
 
     db.add(user)
     db.commit()
     db.refresh(user)
 
-    return {"ok": True}
+    return {
+        "ok": True,
+        "reset_code": user.reset_code
+    }
 
 @router.delete("/users/{user_id}")
 def delete_user(
