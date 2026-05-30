@@ -31,26 +31,30 @@ export default function LoginForm() {
   };
 
   return (
-    <main className={styles.container}>
+    <main className={styles.loginContainer}>
       <div className={styles.titleBlock}>
-        <h1>Система хранения документов</h1>
+        <h1>
+          Система организации хранения документов согласно номенклатуре дел учебного офиса
+        </h1>
       </div>
 
-      <form className={styles.card} onSubmit={handleSubmit}>
-        <h2>Вход</h2>
+      <form className={styles.loginCard} onSubmit={handleSubmit}>
+        <h2>Вход в систему</h2>
 
         <input
           type="email"
           placeholder="Email"
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          onChange={e => setEmail(e.target.value)}
+          required
         />
 
         <input
           type="password"
           placeholder="Пароль"
           value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          onChange={e => setPassword(e.target.value)}
+          required
         />
 
         <button type="submit">Войти</button>

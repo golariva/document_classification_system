@@ -24,15 +24,15 @@ export default function ForgotPassword() {
     const data = await res.json();
 
     if (res.ok) {
-      setMessage("Пароль изменен. Новый код: " + data.new_reset_code);
+      setMessage("Пароль изменен. Новый код восстановления: " + data.new_reset_code);
     } else {
       setMessage(data.detail);
     }
   };
 
   return (
-    <main className={styles.container}>
-      <div className={styles.card}>
+    <main className={styles.forgotContainer}>
+      <div className={styles.forgotCard}>
         <h2>Восстановление пароля</h2>
 
         <input
@@ -44,7 +44,7 @@ export default function ForgotPassword() {
 
         <input
           type="text"
-          placeholder="Код"
+          placeholder="Код восстановления"
           value={resetCode}
           onChange={(e) => setResetCode(e.target.value)}
         />
@@ -56,16 +56,22 @@ export default function ForgotPassword() {
           onChange={(e) => setNewPassword(e.target.value)}
         />
 
-        <button onClick={handleReset}>Сменить пароль</button>
+        <button onClick={handleReset}>
+          Сменить пароль
+        </button>
 
         <button
           className={styles.secondary}
           onClick={() => navigate("/")}
         >
-          Назад
+          Назад к авторизации
         </button>
 
-        {message && <p className={styles.message}>{message}</p>}
+        {message && (
+          <p className={styles.message}>
+            {message}
+          </p>
+        )}
       </div>
     </main>
   );
