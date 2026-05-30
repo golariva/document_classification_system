@@ -1,12 +1,13 @@
 import { useState } from "react";
-import "./LoginForm.css";
 import { useNavigate } from "react-router-dom";
+import styles from "./ForgotPassword.module.css";
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
   const [resetCode, setResetCode] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [message, setMessage] = useState("");
+
   const navigate = useNavigate();
 
   const handleReset = async () => {
@@ -30,9 +31,8 @@ export default function ForgotPassword() {
   };
 
   return (
-    <main className="forgot-container">
-
-      <div className="forgot-card">
+    <main className={styles.container}>
+      <div className={styles.card}>
         <h2>Восстановление пароля</h2>
 
         <input
@@ -44,7 +44,7 @@ export default function ForgotPassword() {
 
         <input
           type="text"
-          placeholder="Код восстановления"
+          placeholder="Код"
           value={resetCode}
           onChange={(e) => setResetCode(e.target.value)}
         />
@@ -56,20 +56,17 @@ export default function ForgotPassword() {
           onChange={(e) => setNewPassword(e.target.value)}
         />
 
-        <button onClick={handleReset}>
-          Сменить пароль
-        </button>
+        <button onClick={handleReset}>Сменить пароль</button>
 
         <button
-          className="secondary"
+          className={styles.secondary}
           onClick={() => navigate("/")}
         >
-          Назад к авторизации
+          Назад
         </button>
 
-        {message && <p className="message">{message}</p>}
+        {message && <p className={styles.message}>{message}</p>}
       </div>
-
     </main>
   );
 }

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { login } from "../api";
 import { useNavigate, Link } from "react-router-dom";
-import "./LoginForm.css";
+import styles from "./LoginForm.module.css";
 
 export default function LoginForm() {
   const [email, setEmail] = useState("");
@@ -11,6 +11,7 @@ export default function LoginForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     try {
       const data = await login(email, password);
 
@@ -30,39 +31,35 @@ export default function LoginForm() {
   };
 
   return (
-    <main className="login-container">
-        <div className="title-block">
-          <h1>
-            Система организации хранения документов согласно номенклатуре дел учебного офиса
-          </h1>
-        </div>
+    <main className={styles.container}>
+      <div className={styles.titleBlock}>
+        <h1>Система хранения документов</h1>
+      </div>
 
-      <form className="login-card" onSubmit={handleSubmit}>
-        <h2>Вход в систему</h2>
+      <form className={styles.card} onSubmit={handleSubmit}>
+        <h2>Вход</h2>
 
         <input
           type="email"
           placeholder="Email"
           value={email}
-          onChange={e => setEmail(e.target.value)}
-          required
+          onChange={(e) => setEmail(e.target.value)}
         />
 
         <input
           type="password"
           placeholder="Пароль"
           value={password}
-          onChange={e => setPassword(e.target.value)}
-          required
+          onChange={(e) => setPassword(e.target.value)}
         />
 
         <button type="submit">Войти</button>
 
-        <p className="forgot">
+        <p className={styles.forgot}>
           <Link to="/forgot-password">Забыли пароль?</Link>
         </p>
 
-        {error && <p className="error">{error}</p>}
+        {error && <p className={styles.error}>{error}</p>}
       </form>
     </main>
   );
