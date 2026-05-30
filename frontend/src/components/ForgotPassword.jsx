@@ -1,11 +1,13 @@
 import { useState } from "react";
 import "./LoginForm.css";
+import { useNavigate } from "react-router-dom";
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
   const [resetCode, setResetCode] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [message, setMessage] = useState("");
+  const navigate = useNavigate();
 
   const handleReset = async () => {
     const res = await fetch(
@@ -77,6 +79,10 @@ export default function ForgotPassword() {
           </p>
         )}
       </div>
+
+      <button onClick={() => navigate("/login")}>
+        Назад к авторизации
+      </button>
     </main>
   );
 }

@@ -417,13 +417,13 @@ def reset_password(
     if user.reset_code != data.reset_code:
         raise HTTPException(
             status_code=403,
-            detail="Wrong reset code"
+            detail="Неправильный код восстановления"
         )
 
     if len(data.new_password) < 8:
         raise HTTPException(
             status_code=400,
-            detail="Weak password"
+            detail="Придумайте более сложный пароль"
         )
 
     user.password_hash = hash_password(
